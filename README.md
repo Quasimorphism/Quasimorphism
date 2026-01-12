@@ -1,24 +1,9 @@
-# 박상민 (PARK SANGMIN) | Backend Developer
-
-> **"기능 구현을 넘어, 운영 가능한 시스템을 설계하는 개발자"**  
-> 실패를 예측하고, 장애의 전파를 막으며, 자원을 효율적으로 사용하는 **이유 있는 설계**를 지향합니다.
+# 박상민 (PARK SANGMIN)
 
 <div>
   <a href="mailto:bak575755@gmail.com"><img src="https://img.shields.io/badge/Email-bak575755%40gmail.com-d14836?style=flat-square&logo=gmail&logoColor=white" alt="Email"/></a>
   <a href="https://github.com/Quasimorphism"><img src="https://img.shields.io/badge/GitHub-Quasimorphism-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"/></a>
 </div>
-
----
-
-## About Me
-
-**[이유 있는 설계를 고민합니다]**  
-프로젝트 초기에는 "기능이 동작하는 것"에 집중했습니다. 하지만 대용량 데이터 처리 중 발생한 503 에러와 DB 커넥션 고갈로 인한 서비스 마비 경험은 저를 변화시켰습니다. 
-단순한 버그 수정이 아니라, "**이 기능이 운영 환경에서 어떤 자원을 점유하는가?**", "**외부 시스템의 장애가 우리 서비스로 전파되지 않으려면 어떻게 해야 하는가?**"를 먼저 고민하게 되었습니다.
-
-**[운영 가능한 서비스를 만듭니다]**  
-백엔드 개발의 핵심은 성공 케이스가 아니라 **실패 상황을 통제하는 능력**에 있다고 믿습니다. 
-API 할당량 제한, 네트워크 타임아웃, 대량 데이터 처리에 따른 DB 부하 등 예측 가능한 문제들을 설계 단계에서 정의하고, 트레이드오프를 고려하여 시스템의 안정성을 확보하는 데 주력합니다.
 
 ---
 
