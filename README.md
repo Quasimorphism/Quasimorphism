@@ -42,17 +42,17 @@ API 할당량 제한, 네트워크 타임아웃, 대량 데이터 처리에 따�
 저는 **도서 도메인의 관리자 API**와 데이터 처리를 위한 **Batch System**의 설계를 담당했습니다.
 
 #### 1. [[Batch Service (Data Pipeline)](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service)]
-대용량 데이터의 안정적 처리와 이기종 저장소(MySQL, Elasticsearch) 간의 데이터 정합성을 보장하는 배치 시스템을 설계했습니다.
+배치 처리가 요구되는 데이터의 안정적 처리와 이기종 저장소(MySQL, Elasticsearch) 간의 데이터 정합성을 보장하는 파이프라인을 설계했습니다.
 
 *   **성능 최적화 (Performance Optimization)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/Performance_Optimization.md)]
-    *   **문제:** 15만 건의 초기 데이터를 JPA로 적재 시 과도한 시간 소요 및 성능 저하.
+    *   **문제:** 단일 트랜잭션으로 처리하기엔 부담스러운 15만 건의 데이터를 JPA로 적재 시 과도한 시간 소요.
     *   **해결:** **Tasklet + In-Memory 캐시** 전략 채택 및 JDBC Bulk Insert(`rewriteBatchedStatements`) 구현.
     *   **성과:** I/O 오버헤드를 제거하여 쓰기 성능을 극대화하고 초기 데이터 적재 시간을 획기적으로 단축.
 
 *   **외부 연동 및 파이프라인 (External Integration)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/External_Integrations.md)]
     *   **문제:** 알라딘 API의 엄격한 호출 제한(일 5,000회)과 Ollama API의 긴 응답 시간으로 인한 병목.
-    *   **해결:** **Multi-Key Rotation** 적용, 보강와 임베딩 단계 분리, 청크 기반 처리 도입. 
-    *   **성과:** 긴 트랜잭션으로 인한 DB 커넥션 고갈 방지.
+    *   **해결:** **Multi-Key Rotation** 적용 및 처리 속도를 의도적으로 조절(Throttling)하여 전체 처리 시간 증가를 감수하는 대신 시스템 안정성을 확보.
+    *   **성과:** 긴 트랜잭션으로 인한 DB 커넥션 고갈 방지 및 외부 시스템 부하 제어.
 
 *   **가격 재계산 및 검색 반영 (Event-Driven Architecture)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/batch_jobs/DiscountRepriceJob.md)]
     *   **문제:** 할인 정책 변경 시 배치의 스케줄러가 돌기 전까지 가격 미반영 및 검색 결과 불일치 발생.
