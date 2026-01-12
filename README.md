@@ -41,7 +41,7 @@ API 할당량 제한, 네트워크 타임아웃, 대량 데이터 처리에 따�
 ### 👨‍💻 My Contributions
 저는 **도서 도메인의 관리자 API**와 데이터 처리를 위한 **Batch System**의 설계를 담당했습니다.
 
-#### 1. Batch Service (Data Pipeline)
+#### 1. [[Batch Service (Data Pipeline)](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service)]
 대용량 데이터의 안정적 처리와 이기종 저장소(MySQL, Elasticsearch) 간의 데이터 정합성을 보장하는 배치 시스템을 설계했습니다.
 
 *   **성능 최적화 (Performance Optimization)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/Performance_Optimization.md)]
@@ -69,7 +69,7 @@ API 할당량 제한, 네트워크 타임아웃, 대량 데이터 처리에 따�
     *   **해결:** **24h/48h 안전 윈도우**를 적용한 본문 미사용 이미지 식별 및 삭제 파이프라인.
     *   **성과:** 서비스 영향도(오삭제 위험) 없이 불필요한 스토리지 비용 자동 절감.
 
-#### 2. Backend API Development
+#### 2. [[Backend API Development](https://github.com/nhnacademy-be12-4vidia/4vidia-bookstore-service)]
 관리자 페이지의 도서 등록 편의성과 데이터 관리를 위한 핵심 API를 개발했습니다.
 
 *   **지능형 도서 검색 및 자동 보강 (Smart Search & Enrichment)**
