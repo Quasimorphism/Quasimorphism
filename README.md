@@ -42,30 +42,50 @@ API 할당량 제한, 네트워크 타임아웃, 대량 데이터 처리에 따�
 저는 **도서 도메인의 관리자 API**와 데이터 처리를 위한 **Batch System**의 설계를 담당했습니다.
 
 #### 1. Batch Service (Data Pipeline)
-CSV 기반의 대량 데이터 적재 및 정책 기반 가격 관리 파이프라인을 구축했습니다.
+대용량 데이터의 안정적 처리와 이기종 저장소(MySQL, Elasticsearch) 간의 데이터 정합성을 보장하는 배치 시스템을 설계했습니다.
 
-*   **대량 데이터 적재 성능 최적화:**
-    *   15만 건의 초기 데이터 적재 시, `JdbcTemplate` 기반의 **Bulk Insert**와 `INSERT IGNORE`를 활용하여 중복 오류를 제어하고 쓰기 성능을 높였습니다.
-*   **데이터 보강 및 임베딩 처리:**
-    *   초기 데이터의 부족한 정보를 Aladin OpenAPI를 통해 보강하고, 검색을 위한 임베딩 값을 받아 저장하는 배치 파이프라인을 설계했습니다.
-    *   외부 API 호출 실패에 대비해 `Spring Retry`를 도입, 재시도 로직을 구현하여 안정성을 확보했습니다.
-*   **하이브리드 가격 재계산 구조 (Event + Scheduler):** 
-    *   **이벤트 기반:** 할인 정책이 생성/수정되는 즉시 반영되도록 RabbitMQ를 연동하여 지연 시간을 해소했습니다.
-    *   **내부 스케줄러 기반:** 할인 정책의 **시작일과 종료일**에 맞춰 판매가가 자동 갱신되도록 서비스 내부의 스케줄러가 매일 자정 배치를 실행하도록 설계했습니다.
-*   **WYSIWYG 리소스 정리:** 
-    *   에디터 미리보기 시 업로드되었으나 도서 설명에는 포함되지 않은 고아 이미지(Orphan Image)를 삭제하는 배치를 통해 스토리지 비용을 최적화했습니다.
+*   **성능 최적화 (Performance Optimization)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/Performance_Optimization.md)]
+    *   **문제:** 15만 건의 초기 데이터를 JPA로 적재 시 과도한 시간 소요 및 성능 저하.
+    *   **해결:** **Tasklet + In-Memory 캐시** 전략 채택 및 JDBC Bulk Insert(`rewriteBatchedStatements`) 구현.
+    *   **성과:** I/O 오버헤드를 제거하여 쓰기 성능을 극대화하고 초기 데이터 적재 시간을 획기적으로 단축.
+
+*   **외부 연동 및 파이프라인 (External Integration)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/External_Integrations.md)]
+    *   **문제:** 알라딘 API의 엄격한 호출 제한(일 5,000회)과 Ollama API의 긴 응답 시간으로 인한 병목.
+    *   **해결:** **Multi-Key Rotation** 적용, 보강와 임베딩 단계 분리, 청크 기반 처리 도입. 
+    *   **성과:** 긴 트랜잭션으로 인한 DB 커넥션 고갈 방지.
+
+*   **가격 재계산 및 동기화 (Event-Driven Architecture)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/batch_jobs/DiscountRepriceJob.md)]
+    *   **문제:** 할인 정책 변경 시 배치의 스케줄러가 돌기 전까지 가격 미반영 및 검색 결과 불일치 발생.
+    *   **해결:** RabbitMQ 이벤트 기반 트리거 및 **CompositeWriter**를 통한 DB-Elasticsearch 동시 업데이트.
+    *   **성과:** 정책 변경 즉시 판매가 갱신 및 이기종 저장소 간 실시간 데이터 정합성 보장.
+
+*   **장애 허용 및 신뢰성 (Fault Tolerance)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/Fault_Tolerance_and_Reliability.md)]
+    *   **문제:** 네트워크 등 일시적 장애로 인해 대량 배치 작업 전체가 실패하는 비효율.
+    *   **해결:** 정교한 **Retry/Skip 정책** 적용 및 재시작 가능한(Restartable) **멱등성(Idempotency)** 설계.
+    *   **성과:** 장애 발생 시 자동 복구 및 실패 지점부터 중복 없이 안전한 재처리 보장.
+
+*   **리소스 최적화 (Resource Optimization)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/batch_jobs/ContentImageCleanupJob.md)]
+    *   **문제:** 에디터 작성 중단 등으로 방치된 고아(Orphan) 이미지가 스토리지 비용 낭비.
+    *   **해결:** **24h/48h 안전 윈도우**를 적용한 본문 미사용 이미지 식별 및 삭제 파이프라인.
+    *   **성과:** 서비스 영향도(오삭제 위험) 없이 불필요한 스토리지 비용 자동 절감.
 
 #### 2. Backend API Development
 관리자 페이지의 도서 등록 편의성과 데이터 관리를 위한 핵심 API를 개발했습니다.
 
-*   **스마트 도서 검색 및 보강 (`/admin/books/search`):** 
-    *   관리자의 도서 등록 수고를 줄이기 위해 **ISBN 기반의 지능형 검색 흐름**을 설계했습니다.
-    *   **Flow:** DB 조회 → (없으면) 외부 API 조회 → Gemini RAG를 활용하여 도서 정보(설명, 태그 등) 자동 생성 및 보강 → 등록 폼 프리필(Pre-fill).
-*   **관리자 도서 관리 (`/admin/books`):** 도서 CRUD 및 메타데이터(작가/태그) 매핑 관리.
-*   **카테고리 시스템 (`/categories`, `/admin/categories`):** 계층형 카테고리 구조 설계 및 관리 기능 구현.
-*   **할인 정책 관리 (`/admin/books/discount-policies`):** 
-    *   도서정가제 및 자체 할인 정책 API 개발.
-    *   정책 변경 시 RabbitMQ 메시지 발행을 통한 배치 연동 로직 구현.
+*   **지능형 도서 검색 및 자동 보강 (Smart Search & Enrichment)**
+    *   **문제:** 관리자가 도서 등록 시 모든 정보를 수동 입력해야 하는 번거로움과 데이터 일관성 부족.
+    *   **해결:** ISBN 검색 파이프라인(DB → 외부 API → Gemini)을 구축하고, 캐시를 적용해 중복 호출 방지.
+    *   **성과:** 도서 등록 편의성을 획기적으로 개선하고, 외부 API의 호출 절약.
+
+*   **계층형 카테고리 및 도서 관리 (Category & Book Management)**
+    *   **문제:** 대규모 도서 분류를 위한 복잡한 계층 구조 설계와 조회 성능 최적화 필요.
+    *   **해결:** **한국십진분류법(KDC)** 표준을 채택하여 데이터 정합성을 확보하고, Path 기반 트리 구조 및 Self-Referencing 엔티티로 계층형 API 구현.
+    *   **성과:** 표준화된 분류 체계 구축 및 효율적인 인덱싱을 통해 대량 데이터 조회 성능 확보.
+
+*   **할인 정책 및 이벤트 연동 (Discount Policy & Event Integration)**
+    *   **문제:** 할인 정책 변경 시 수만 권의 도서 가격을 동기적으로 재계산하면 **API 응답 지연 및 시스템 과부하** 발생.
+    *   **해결:** 정책 관리 API 개발 및 변경 이벤트를 **RabbitMQ로 발행**하여, 무거운 재계산 로직을 배치 서비스가 비동기로 처리하도록 이관.
+    *   **성과:** API 서버의 부하를 제거하여 **사용자 응답 속도(Latency)를 저해하지 않으면서** 대규모 가격 갱신을 안정적으로 수행.
 
 ---
 
