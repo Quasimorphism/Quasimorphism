@@ -54,10 +54,10 @@ API 할당량 제한, 네트워크 타임아웃, 대량 데이터 처리에 따�
     *   **해결:** **Multi-Key Rotation** 적용, 보강와 임베딩 단계 분리, 청크 기반 처리 도입. 
     *   **성과:** 긴 트랜잭션으로 인한 DB 커넥션 고갈 방지.
 
-*   **가격 재계산 및 동기화 (Event-Driven Architecture)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/batch_jobs/DiscountRepriceJob.md)]
+*   **가격 재계산 및 검색 반영 (Event-Driven Architecture)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/batch_jobs/DiscountRepriceJob.md)]
     *   **문제:** 할인 정책 변경 시 배치의 스케줄러가 돌기 전까지 가격 미반영 및 검색 결과 불일치 발생.
-    *   **해결:** RabbitMQ 이벤트 기반 트리거 및 **CompositeWriter**를 통한 DB-Elasticsearch 동시 업데이트.
-    *   **성과:** 정책 변경 즉시 판매가 갱신 및 이기종 저장소 간 실시간 데이터 정합성 보장.
+    *   **해결:** RabbitMQ 이벤트 기반 트리거 및 **CompositeWriter**를 활용하여 DB 갱신과 동시에 검색 인덱스 업데이트 수행.
+    *   **성과:** 정책 변경 즉시 판매가가 검색 결과에 반영되어 사용자 혼란 방지.
 
 *   **장애 허용 및 신뢰성 (Fault Tolerance)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/Fault_Tolerance_and_Reliability.md)]
     *   **문제:** 네트워크 등 일시적 장애로 인해 대량 배치 작업 전체가 실패하는 비효율.
