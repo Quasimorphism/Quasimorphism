@@ -30,47 +30,47 @@
 배치 처리가 요구되는 데이터의 안정적 처리와 이기종 저장소(MySQL, Elasticsearch) 간의 데이터 정합성을 보장하는 파이프라인을 설계했습니다.
 
 *   **성능 최적화 (Performance Optimization)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/Performance_Optimization.md)]
-    *   **문제:** 단일 트랜잭션으로 처리하기엔 부담스러운 15만 건의 데이터를 JPA로 적재 시 과도한 시간 소요.
-    *   **해결:** **Tasklet + In-Memory 캐시** 전략 채택 및 JDBC Bulk Insert(`rewriteBatchedStatements`) 구현.
-    *   **성과:** I/O 오버헤드를 제거하여 쓰기 성능을 극대화하고 초기 데이터 적재 시간을 획기적으로 단축.
+    *   **문제:** 15만 건의 도서 데이터 적재 시 JPA의 N+1 Insert 발생 및 과도한 시간 소요.
+    *   **해결:** **InMemoryReferenceDataCache**를 구현하여 반복 조회 비용을 제거하고, JDBC Bulk Insert(`rewriteBatchedStatements`)를 적용.
+    *   **성과:** I/O 오버헤드를 줄여 초기 데이터 적재 속도 개선.
 
 *   **외부 연동 및 파이프라인 (External Integration)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/External_Integrations.md)]
-    *   **문제:** 알라딘 API의 엄격한 호출 제한(일 5,000회)과 Ollama API의 긴 응답 시간으로 인한 병목.
-    *   **해결:** **Multi-Key Rotation** 적용 및 처리 속도를 의도적으로 조절(Throttling)하여 전체 처리 시간 증가를 감수하는 대신 시스템 안정성을 확보.
-    *   **성과:** 긴 트랜잭션으로 인한 DB 커넥션 고갈 방지 및 외부 시스템 부하 제어.
+    *   **문제:** 알라딘 API의 일일 호출 제한(5,000회) 및 외부 API 응답 지연.
+    *   **해결:** **Multi-Key Rotation** 전략으로 호출 한도를 확장하고, 처리 속도를 조절(Throttling)하여 시스템 안정성 확보.
+    *   **성과:** 외부 API 호출 제한 준수 및 긴 트랜잭션으로 인한 DB 부하 방지.
 
 *   **가격 재계산 및 검색 반영 (Event-Driven Architecture)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/batch_jobs/DiscountRepriceJob.md)]
-    *   **문제:** 할인 정책 변경 시 배치의 스케줄러가 돌기 전까지 가격 미반영 및 검색 결과 불일치 발생.
-    *   **해결:** RabbitMQ 이벤트 기반 트리거 및 **CompositeWriter**를 활용하여 DB 갱신과 동시에 검색 인덱스 업데이트 수행.
-    *   **성과:** 정책 변경 즉시 판매가가 검색 결과에 반영되어 사용자 혼란 방지.
+    *   **문제:** 할인 정책 변경 시 다수의 도서 가격 변경 필요.
+    *   **해결:** RabbitMQ 이벤트를 트리거로 배치를 실행하고, **CompositeWriter**를 활용하여 변경된 가격을 DB와 검색 인덱스(ES)에 반영.
+    *   **성과:** 정책 변경 사항을 비동기로 안전하게 반영하여 데이터 일관성 유지.
 
 *   **장애 허용 및 신뢰성 (Fault Tolerance)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/Fault_Tolerance_and_Reliability.md)]
-    *   **문제:** 네트워크 등 일시적 장애로 인해 대량 배치 작업 전체가 실패하는 비효율.
-    *   **해결:** 정교한 **Retry/Skip 정책** 적용 및 재시작 가능한(Restartable) **멱등성(Idempotency)** 설계.
-    *   **성과:** 장애 발생 시 자동 복구 및 실패 지점부터 중복 없이 안전한 재처리 보장.
+    *   **문제:** 네트워크 등 일시적 장애로 인한 배치 작업 실패.
+    *   **해결:** Step별 **Retry/Skip 정책**을 적용하고, 재시작 시 중복 처리가 없도록 멱등성(Idempotency) 보장 설계.
+    *   **성과:** 장애 발생 시 자동 복구 시도 및 안전한 재처리 보장.
 
 *   **리소스 최적화 (Resource Optimization)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/batch_jobs/ContentImageCleanupJob.md)]
-    *   **문제:** 에디터 작성 중단 등으로 방치된 고아(Orphan) 이미지가 스토리지 비용 낭비.
-    *   **해결:** **24h/48h 안전 윈도우**를 적용한 본문 미사용 이미지 식별 및 삭제 파이프라인.
-    *   **성과:** 서비스 영향도(오삭제 위험) 없이 불필요한 스토리지 비용 자동 절감.
+    *   **문제:** 에디터 작성 중단 등으로 방치된 고아(Orphan) 이미지가 스토리지 공간 점유.
+    *   **해결:** 생성 후 24시간이 지난 미사용 이미지를 식별하여 MinIO에서 삭제하는 파이프라인 구축.
+    *   **성과:** 불필요한 스토리지 비용 절감.
 
 #### 2. [[Backend API Development](https://github.com/nhnacademy-be12-4vidia/4vidia-bookstore-service)]
 관리자 페이지의 도서 등록 편의성과 데이터 관리를 위한 핵심 API를 개발했습니다.
 
-*   **지능형 도서 검색 및 자동 보강 (Smart Search & Enrichment)**
-    *   **문제:** 관리자가 도서 등록 시 모든 정보를 수동 입력해야 하는 번거로움과 데이터 일관성 부족.
-    *   **해결:** ISBN 검색 파이프라인(DB → 외부 API → Gemini)을 구축하고, 캐시를 적용해 중복 호출 방지.
-    *   **성과:** 도서 등록 편의성을 획기적으로 개선하고, 외부 API의 호출 절약.
+*   **Gemini 기반 도서 정보 보강 (AI Enrichment)**
+    *   **문제:** 관리자가 도서 등록 시 모든 정보를 수동 입력해야 하는 번거로움.
+    *   **해결:** ISBN 검색 파이프라인(DB → 외부 API)에 **Gemini API**를 연동하여 설명, 목차 등 부족한 정보를 자동으로 생성 및 보강.
+    *   **성과:** 관리자의 도서 등록 작업 효율성 향상.
 
 *   **계층형 카테고리 및 도서 관리 (Category & Book Management)**
-    *   **문제:** 대규모 도서 분류를 위한 복잡한 계층 구조 설계와 조회 성능 최적화 필요.
-    *   **해결:** **한국십진분류법(KDC)** 표준을 채택하여 데이터 정합성을 확보하고, Path 기반 트리 구조 및 Self-Referencing 엔티티로 계층형 API 구현.
-    *   **성과:** 표준화된 분류 체계 구축 및 효율적인 인덱싱을 통해 대량 데이터 조회 성능 확보.
+    *   **문제:** 대규모 도서 분류를 위한 계층 구조 설계 필요.
+    *   **해결:** **한국십진분류법(KDC)** 표준을 기반으로 Path 기반 트리 구조 및 Self-Referencing 엔티티 설계.
+    *   **성과:** 표준화된 분류 체계 구축 및 계층형 데이터 조회 기능 구현.
 
 *   **할인 정책 및 이벤트 연동 (Discount Policy & Event Integration)**
-    *   **문제:** 할인 정책 변경 시 수만 권의 도서 가격을 동기적으로 재계산하면 **API 응답 지연 및 시스템 과부하** 발생.
-    *   **해결:** 정책 관리 API 개발 및 변경 이벤트를 **RabbitMQ로 발행**하여, 무거운 재계산 로직을 배치 서비스가 비동기로 처리하도록 이관.
-    *   **성과:** API 서버의 부하를 제거하여 **사용자 응답 속도(Latency)를 저해하지 않으면서** 대규모 가격 갱신을 안정적으로 수행.
+    *   **문제:** 할인 정책 변경 시 발생하는 대량의 가격 변경 작업이 API 서버에 부하 유발.
+    *   **해결:** 정책 변경 이벤트를 **RabbitMQ로 발행**하여 배치 서비스가 비동기로 가격을 재계산하도록 위임.
+    *   **성과:** API 서버의 트랜잭션 부하를 제거하고 사용자 응답 속도 유지.
 
 ---
 
