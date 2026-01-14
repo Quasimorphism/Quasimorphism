@@ -35,9 +35,9 @@
     *   **성과:** 초기 데이터 적재 속도 개선.
 
 *   **AI 임베딩 파이프라인 최적화 (AI Embedding Optimization)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/External_Integrations.md)]
-    *   **문제:** 외부 API(Ollama) 호출 시 발생하는 응답 대기로 인한 DB 커넥션 및 락(Lock) 점유 시간 증가.
-    *   **해결:** 데이터 보강과 임베딩 단계를 분리하여 트랜잭션 범위를 최소화하고, Bulk 연산 및 Fetch Join을 통해 I/O 효율을 높임.
-    *   **성과:** 외부 시스템 연동 과정에서의 시스템 자원 효율화 및 안정성 확보.
+    *   **문제:** 외부 API(Ollama) 호출 대기 시간 동안 DB Connection 및 Row Lock을 점유하는 현상 발생.
+    *   **해결:** 데이터 보강과 임베딩 생성을 별도 Step으로 분리하여 트랜잭션을 나누고, Fetch Join과 JDBC Batch Update 적용.
+    *   **성과:** 도서 정보의 벡터 데이터를 생성하여 Elasticsearch에 적재.
 
 *   **가격 재계산 및 검색 반영 (Event-Driven Architecture)** [[👉 Tech Log](https://github.com/nhnacademy-be12-4vidia/4vidia-batch-service/blob/main/docs/wiki/batch_jobs/DiscountRepriceJob.md)]
     *   **문제:** 할인 정책 변경 시 다수의 도서 가격 갱신 필요.
