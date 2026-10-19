@@ -1,6 +1,6 @@
 # 박상민 (PARK SANGMIN)
 
-Java와 Spring 기반의 팀 프로젝트에서 인증/인가, 도서 관리, 서버 배포를 맡았습니다.
+Java와 Spring 기반의 팀 프로젝트에서 인프라, 인증/인가, 도서 관리를 맡았습니다.
 
 <div>
   <a href="mailto:bak575755@gmail.com"><img src="https://img.shields.io/badge/Email-bak575755%40gmail.com-d14836?style=flat-square&logo=gmail&logoColor=white" alt="Email"/></a>
@@ -64,6 +64,5 @@ Java와 Spring 기반의 팀 프로젝트에서 인증/인가, 도서 관리, �
 *   **조선대학교 컴퓨터공학전공**
     *   2020.03 ~ 2026.02
     *   성적: 4.18 / 4.5
-*   **어학 및 역량평가**
+*   **어학**
     *   TOEIC 820
-    *   TOPCIT 3수준
